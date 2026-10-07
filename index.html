@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашнее Задание Нашего Класса</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 25px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { color: #1877f2; margin-top: 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+        .homework-list { list-style: none; padding: 0; margin: 0; }
+        .homework-list li { padding: 10px 0; border-bottom: 1px dashed #e4e6eb; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .homework-list li:last-child { border-bottom: none; }
+        strong { color: #4b4f56; display: inline-block; width: 120px; }
+        
+        /* Стили для админ-панели */
+        .admin-panel { background: #e7f3ff; border: 1px solid #1877f2; }
+        .form-group { margin-bottom: 12px; display: flex; gap: 10px; }
+        select, input[type="text"], input[type="password"] { padding: 8px; border: 1px solid #ccd0d5; border-radius: 6px; font-size: 14px; flex: 1; data-theme: light; }
+        select { flex: 0 0 150px; }
+        button { background-color: #1877f2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #166fe5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📚 ДЗ Онлайн</h1>
+        <p>Актуальное домашнее задание для нашего класса</p>
+    </header>
+
+    <!-- СЕКЦИЯ ДЛЯ ПРОСМОТРА ОДНОКЛАССНИКАМИ -->
+    <div class="card">
+        <h2>Понедельник</h2>
+        <ul class="homework-list" id="monday-list"><li>Загрузка...</li></ul>
+    </div>
+
+    <div class="card">
+        <h2>Вторник</h2>
+        <ul class="homework-list" id="tuesday-list"><li>Загрузка...</li></ul>
+    </div>
+
+    <div class="card">
+        <h2>Среда</h2>
+        <ul class="homework-list" id="wednesday-list"><li>Загрузка...</li></ul>
+    </div>
+
+
+    <!-- ПАНЕЛЬ АДМИНИСТРАТОРА (Для тебя) -->
+    <div class="card admin-panel">
+        <h3>Добавить / Изменить задание</h3>
+        <div class="form-group">
+            <select id="day-select">
+                <option value="monday">Понедельник</option>
+                <option value="tuesday">Вторник</option>
+                <option value="wednesday">Среда</option>
+            </select>
+            <input type="text" id="subject-input" placeholder="Предмет (например, Математика)">
+        </div>
+        <div class="form-group">
+            <input type="text" id="task-input" placeholder="Что задали?">
+        </div>
+        <div class="form-group">
+            <input type="password" id="secret-password" placeholder="Секретный пароль для записи">
+            <button onclick="saveHomework()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- СВЯЗКА JAVASCRIPT И FIREBASE -->
+<script type="module">
+    import { initializeApp } from "https://gstatic.com";
+    import { getDatabase, ref, set, onValue } from "https://gstatic.com";
+
+    // ⚠️ ВСТАВЬ СЮДА СВОИ ДАННЫЕ ИЗ КОНСОЛИ FIREBASE
+    const firebaseConfig = {
+        apiKey: "ТВОЙ_API_KEY",
+        authDomain: "ТВОЙ_://firebaseapp.com",
+        databaseURL: "https://ТВОЙ_://firebaseio.com",
+        projectId: "ТВОЙ_PROJECT_ID",
+        storageBucket: "ТВОЙ_://appspot.com",
+        messagingSenderId: "ТВОЙ_SENDER_ID",
+        appId: "ТВОЙ_APP_ID"
+    };
+
+    // Инициализация
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // 🔑 ТВОЙ СЕКРЕТНЫЙ ПАРОЛЬ (Поменяй на свой!)
+    const MY_SECRET_PASSWORD = "sus67"; 
+
+    // Чтение данных в реальном времени
+    const dbRef = ref(database, 'homework');
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        
+        renderDay('monday', data.monday, 'monday-list');
+        renderDay('tuesday', data.tuesday, 'tuesday-list');
+        renderDay('wednesday', data.wednesday, 'wednesday-list');
+    }, (error) => {
+        alert("Ошибка доступа к базе! Проверь вкладку Rules в Firebase. " + error.message);
+    });
+
+    function renderDay(dayName, dayData, elementId) {
+        const listElement = document.getElementById(elementId);
+        if (!listElement) return;
+        listElement.innerHTML = '';
+        
+        if (!dayData || Object.keys(dayData).length === 0) {
+            listElement.innerHTML = '<li>Ничего не задано 🎉</li>';
+            return;
+        }
+
+        for (const subject in dayData) {
+            const li = document.createElement('li');
+            li.innerHTML = `<span><strong>${subject}:</strong> ${dayData[subject]}</span>`;
+            listElement.appendChild(li);
+        }
+    }
+
+    // Функция записи ДЗ
+    window.saveHomework = function() {
+        const day = document.getElementById('day-select').value;
+        const subject = document.getElementById('subject-input').value.trim();
+        const task = document.getElementById('task-input').value.trim();
+        const pass = document.getElementById('secret-password').value;
+
+        if (pass !== MY_SECRET_PASSWORD) {
+            alert('❌ Ошибка: Неверный секретный пароль!');
+            return;
+        }
+
+        if (!subject || !task) {
+            alert('⚠️ Ошибка: Заполни поля!');
+            return;
+        }
+
+        set(ref(database, 'homework/' + day + '/' + subject), task)
+        .then(() => {
+            alert('✅ Успешно сохранено!');
+            document.getElementById('subject-input').value = '';
+            document.getElementById('task-input').value = '';
+        })
+        .catch((error) => {
+            alert('❌ Ошибка Firebase: ' + error.message);
+        });
+    }
+</script>
+</body>
+</html>
